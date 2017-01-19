@@ -299,6 +299,8 @@ class Circle
 
     coverArea: -> 9/4*@a # 3 equal circles
 
+    packsRubies: -> false
+
 class Vertex
     constructor: (@pos) ->
         # nop
@@ -658,7 +660,8 @@ class Rect
     tikz: ->
         "\\draw ("+(-@w()/2)+","+(-@h()/2)+") rectangle ("+@w()/2+","+@h()/2+");\n"
     packArea: -> Math.min((new Triangle([[0,0], [@w(),0], [@w(),@h()]])).packArea()*2, Math.PI*(Math.min(@w(), @h())/2)**2)
-    coverArea: -> (new Triangle([[0,0], [@w(),0], [@w(),@h()]])).coverArea()*2
+    #coverArea: -> (new Triangle([[0,0], [@w(),0], [@w(),@h()]])).coverArea()*2
+    coverArea: -> ((@w()/2)**2+(@w()*Math.sqrt(2)/2)**2)*Math.PI
     pack: (instance) ->
         if instance.length() == 1
             x = r(instance.circles[0].a)
@@ -1004,8 +1007,9 @@ window.onresize = (event) =>
     window.updateCanvas = true
 
 strategies = [
-    "pack"
+    "cover"
     "manual"
+    "pack"
 ]
 strategy = strategies[0]
 
@@ -1020,18 +1024,17 @@ object = objects[0]
 instances = [
     Instance.rand()
     new Instance ((new Circle a) for a in [1])
-    new Instance ((new Circle a) for a in [1,1])
-    new Instance ((new Circle 2**-a) for a in [1..50])
-    new Instance ((new Circle a**15) for a in [50..1])
-    new Instance ((new Circle a) for a in [1..50])
+    new Instance ((new Circle a) for a in [2,1])
+    new Instance ((new Circle a) for a in [1,1,1])
+    new Instance ((new Circle a) for a in [1,1,1,1])
 ]
 
 
 instances[0].visible = true
 
 shapes = [
-    #new Circle 100000
     new Rect(400, 400)
+    new Circle 100000
     #new Rect(400, 400/1.5607)
     new Triangle [[-400, 200], [400, 200], [0, -200]]
     #new Triangle [[-231, 200], [231, 200], [0, -200]]
@@ -1040,6 +1043,7 @@ shapes = [
 
 shapeNames = [
     "rectangle"
+    "circle"
     "triangle"
 ]
 
