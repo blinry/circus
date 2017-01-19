@@ -838,18 +838,45 @@
 
   })();
 
+  ({
+    sleep: function(ms) {
+      return new Promise(resolve((function(_this) {
+        return function() {
+          return setTimeout(resolve, ms);
+        };
+      })(this)));
+    }
+  });
+
   Rect = (function() {
-    function Rect(w, h) {
-      this.vertices = [new Vertex([w / 2, -h / 2])];
+    function Rect(w, h, x, y) {
+      if (x == null) {
+        x = 0;
+      }
+      if (y == null) {
+        y = 0;
+      }
+      if (w < 0 || h < 0) {
+        console.log(":(");
+      }
+      this.vertices = [new Vertex([x + w / 2, y - h / 2]), new Vertex([x, y])];
       this.color = Color.rand();
     }
 
     Rect.prototype.w = function() {
-      return this.vertices[0].pos[0] * 2;
+      return Math.abs((this.vertices[0].pos[0] - this.x()) * 2);
     };
 
     Rect.prototype.h = function() {
-      return this.vertices[0].pos[1] * -2;
+      return Math.abs((this.y() - this.vertices[0].pos[1]) * 2);
+    };
+
+    Rect.prototype.x = function() {
+      return this.vertices[1].pos[0];
+    };
+
+    Rect.prototype.y = function() {
+      return this.vertices[1].pos[1];
     };
 
     Rect.prototype.symmetric = function() {
@@ -858,7 +885,14 @@
 
     Rect.prototype.draw = function() {
       ctx.fillStyle = this.color.string();
-      return ctx.fillRect(-this.w() / 2, -this.h() / 2, this.w(), this.h());
+      return ctx.fillRect(-this.w() / 2 + this.x(), -this.h() / 2 + this.y(), this.w(), this.h());
+    };
+
+    Rect.prototype.drawHelper = function() {
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 0.5;
+      ctx.rect(-this.w() / 2 + this.x(), -this.h() / 2 + this.y(), this.w(), this.h());
+      return ctx.stroke();
     };
 
     Rect.prototype.tikz = function() {
@@ -870,7 +904,7 @@
     };
 
     Rect.prototype.coverArea = function() {
-      return (Math.pow(this.w() / 2, 2) + Math.pow(this.w() * Math.sqrt(2) / 2, 2)) * Math.PI;
+      return this.w() * this.h() * 195 * Math.PI / 256;
     };
 
     Rect.prototype.pack = function(instance) {
@@ -932,8 +966,49 @@
       return this.vertices[0].pos.mul(2);
     };
 
-    Rect.prototype.cover = function() {
-      return [];
+    Rect.prototype.cover = function(instance) {
+      var buckets, longerSide, r1, r2, ratio, rect1, rect2, ref, ref1, ref2, ref3, shorterSide, sum1, sum2, tr1, tr2, y1, y2;
+      if (instance.length() === 1) {
+        instance.circles[0].pos = [this.x(), this.y()];
+        return [];
+      } else {
+        buckets = instance.split([1, 1]);
+        sum1 = buckets[0].sum();
+        sum2 = buckets[1].sum();
+        if (sum1 > sum2) {
+          ref = [sum2, sum1], sum1 = ref[0], sum2 = ref[1];
+          ref1 = [buckets[1], buckets[0]], buckets[0] = ref1[0], buckets[1] = ref1[1];
+        }
+        ratio = sum2 / sum1;
+        console.log("ratio: " + ratio);
+        if (buckets[1].length() === 1) {
+          ref2 = [sum2, sum1], sum1 = ref2[0], sum2 = ref2[1];
+          ref3 = [buckets[1], buckets[0]], buckets[0] = ref3[0], buckets[1] = ref3[1];
+        }
+        shorterSide = Math.min(this.w(), this.h());
+        longerSide = Math.max(this.w(), this.h());
+        r1 = Math.sqrt(sum1 / Math.PI);
+        r2 = Math.sqrt(sum2 / Math.PI);
+        if (ratio > 2 || buckets[0].length() === 1) {
+          y1 = Math.min(Math.sqrt(Math.pow(r1, 2) - (Math.pow(shorterSide, 2)) / 4) * 2, longerSide);
+        } else {
+          y1 = longerSide * 0.5;
+        }
+        if (isNaN(y1)) {
+          y1 = 0;
+        }
+        y2 = longerSide - y1;
+        if (this.w() >= this.h()) {
+          rect1 = new Rect(y1, this.h(), this.x() + this.w() / 2 - y1 / 2, this.y());
+          rect2 = new Rect(y2, this.h(), this.x() - this.w() / 2 + y2 / 2, this.y());
+        } else {
+          rect1 = new Rect(this.w(), y1, this.x(), this.y() - this.h() / 2 + y1 / 2);
+          rect2 = new Rect(this.w(), y2, this.x(), this.y() + this.h() / 2 - y2 / 2);
+        }
+        tr1 = rect1.cover(buckets[0]);
+        tr2 = rect2.cover(buckets[1]);
+        return [rect1, rect2].concat(tr1).concat(tr2);
+      }
     };
 
     return Rect;
@@ -1093,7 +1168,7 @@
 
   canvas.onmousedown = (function(_this) {
     return function(event) {
-      var bestD, c, circle, d, h, i, instance, j, k, len, len1, len2, len3, len4, len5, m, movable, nextX, o, obj, q, ref3, ref4, ref5, ref6, ref7, u, v, x, y, z;
+      var bestD, c, circle, d, h, i, i1, instance, j, k, len, len1, len2, len3, len4, len5, m, movable, nextX, o, obj, q, ref3, ref4, ref5, ref6, ref7, u, v, x, z;
       if (event.which === 1) {
         Mouse.down = true;
         Mouse.didMove = false;
@@ -1172,16 +1247,16 @@
       }
       if (event.which === 2) {
         movable = [];
-        for (y = 0, len4 = instances.length; y < len4; y++) {
-          instance = instances[y];
+        for (z = 0, len4 = instances.length; z < len4; z++) {
+          instance = instances[z];
           if (instance.visible) {
             movable = movable.concat(instance.circles);
           }
         }
         bestD = 999999999999999;
         o = null;
-        for (z = 0, len5 = movable.length; z < len5; z++) {
-          obj = movable[z];
+        for (i1 = 0, len5 = movable.length; i1 < len5; i1++) {
+          obj = movable[i1];
           d = Mouse.pos.sub([canvas.width / 2, yShift]).sub(obj.pos).len();
           if (d <= Math.sqrt(((ref7 = obj.a) != null ? ref7 : 200) / Math.PI) && d <= bestD) {
             bestD = d;
@@ -1345,7 +1420,7 @@
     };
   })(this);
 
-  strategies = ["cover", "manual", "pack"];
+  strategies = ["cover", "pack", "manual"];
 
   strategy = strategies[0];
 
@@ -1356,24 +1431,6 @@
   instances = [
     Instance.rand(), new Instance((function() {
       var k, len, ref3, results;
-      ref3 = [1];
-      results = [];
-      for (k = 0, len = ref3.length; k < len; k++) {
-        a = ref3[k];
-        results.push(new Circle(a));
-      }
-      return results;
-    })()), new Instance((function() {
-      var k, len, ref3, results;
-      ref3 = [2, 1];
-      results = [];
-      for (k = 0, len = ref3.length; k < len; k++) {
-        a = ref3[k];
-        results.push(new Circle(a));
-      }
-      return results;
-    })()), new Instance((function() {
-      var k, len, ref3, results;
       ref3 = [1, 1, 1];
       results = [];
       for (k = 0, len = ref3.length; k < len; k++) {
@@ -1382,11 +1439,23 @@
       }
       return results;
     })()), new Instance((function() {
-      var k, len, ref3, results;
-      ref3 = [1, 1, 1, 1];
+      var k, results;
       results = [];
-      for (k = 0, len = ref3.length; k < len; k++) {
-        a = ref3[k];
+      for (a = k = 1; k <= 50; a = ++k) {
+        results.push(new Circle(Math.pow(2, -a)));
+      }
+      return results;
+    })()), new Instance((function() {
+      var k, results;
+      results = [];
+      for (a = k = 50; k >= 1; a = --k) {
+        results.push(new Circle(Math.pow(a, 15)));
+      }
+      return results;
+    })()), new Instance((function() {
+      var k, results;
+      results = [];
+      for (a = k = 1; k <= 50; a = ++k) {
         results.push(new Circle(a));
       }
       return results;
@@ -1395,7 +1464,7 @@
 
   instances[0].visible = true;
 
-  shapes = [new Rect(400, 400), new Circle(100000), new Triangle([[-400, 200], [400, 200], [0, -200]])];
+  shapes = [new Rect(400, 400)];
 
   shapeNames = ["rectangle", "circle", "triangle"];
 
@@ -1431,7 +1500,6 @@
         scrollObject(1);
       }
     }
-    console.log(object);
     results = [];
     for (m = 0, len1 = instances.length; m < len1; m++) {
       instance = instances[m];

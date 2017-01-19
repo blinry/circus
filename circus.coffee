@@ -646,22 +646,34 @@ class Triangle
         @rotateLargestAngleUp()
         Math.PI*(@c().len()/2)**2
 
+sleep: (ms) ->
+  return new Promise(resolve => setTimeout(resolve, ms))
 
 class Rect
-    constructor: (w, h) ->
-        @vertices = [new Vertex [w/2,-h/2]]
+    constructor: (w, h, x=0, y=0) ->
+        if (w<0 or h<0)
+            console.log(":(")
+        @vertices = [new Vertex([x+w/2,y-h/2]), new Vertex([x, y])]
         @color = Color.rand()
-    w: -> @vertices[0].pos[0]*2
-    h: -> @vertices[0].pos[1]*-2
+    w: -> Math.abs((@vertices[0].pos[0]-@x())*2)
+    h: -> Math.abs((@y()-@vertices[0].pos[1])*2)
+    x: -> @vertices[1].pos[0]
+    y: -> @vertices[1].pos[1]
     symmetric: -> false
     draw: ->
         ctx.fillStyle = @color.string()
-        ctx.fillRect(-@w()/2, -@h()/2, @w(), @h())
+        ctx.fillRect(-@w()/2+@x(), -@h()/2+@y(), @w(), @h())
+    drawHelper: ->
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 0.5
+        ctx.rect(-@w()/2+@x(), -@h()/2+@y(), @w(), @h())
+        ctx.stroke()
     tikz: ->
         "\\draw ("+(-@w()/2)+","+(-@h()/2)+") rectangle ("+@w()/2+","+@h()/2+");\n"
     packArea: -> Math.min((new Triangle([[0,0], [@w(),0], [@w(),@h()]])).packArea()*2, Math.PI*(Math.min(@w(), @h())/2)**2)
     #coverArea: -> (new Triangle([[0,0], [@w(),0], [@w(),@h()]])).coverArea()*2
-    coverArea: -> ((@w()/2)**2+(@w()*Math.sqrt(2)/2)**2)*Math.PI
+    #coverArea: -> ((@w()/2)**2+(@w()*Math.sqrt(2)/2)**2)*Math.PI
+    coverArea: -> @w()*@h()*195*Math.PI/256
     pack: (instance) ->
         if instance.length() == 1
             x = r(instance.circles[0].a)
@@ -713,7 +725,51 @@ class Rect
     a: -> [-@w(), 0]
     b: -> [0, -@h()]
     c: -> @vertices[0].pos.mul(2)
-    cover: -> []#nop
+    cover: (instance) ->
+        if instance.length() == 1
+            instance.circles[0].pos = [@x(), @y()]
+            return []
+        else
+            buckets = instance.split([1, 1])
+            sum1 = buckets[0].sum()
+            sum2 = buckets[1].sum()
+
+            if (sum1 > sum2)
+                [sum1, sum2] = [sum2, sum1]
+                [buckets[0], buckets[1]] = [buckets[1], buckets[0]]
+
+            ratio = sum2/sum1
+            console.log("ratio: "+ratio)
+
+            if (buckets[1].length() == 1)
+                [sum1, sum2] = [sum2, sum1]
+                [buckets[0], buckets[1]] = [buckets[1], buckets[0]]
+
+            shorterSide = Math.min(@w(), @h())
+            longerSide = Math.max(@w(), @h())
+
+            r1 = Math.sqrt(sum1/Math.PI)
+            r2 = Math.sqrt(sum2/Math.PI)
+
+            if ratio > 2 or buckets[0].length() == 1
+                y1 = Math.min(Math.sqrt(r1**2-(shorterSide**2)/4)*2, longerSide)
+            else
+                y1 = longerSide*0.5#(0.5-(0.5-1/8.0)*(ratio-1))
+
+            if isNaN(y1)
+                y1 = 0
+            y2 = longerSide-y1
+
+            if (@w() >= @h())
+                rect1 = new Rect(y1, @h(), @x()+@w()/2-y1/2, @y())
+                rect2 = new Rect(y2, @h(), @x()-@w()/2+y2/2, @y())
+            else
+                rect1 = new Rect(@w(), y1, @x(), @y()-@h()/2+y1/2)
+                rect2 = new Rect(@w(), y2, @x(), @y()+@h()/2-y2/2)
+
+            tr1 = rect1.cover(buckets[0])
+            tr2 = rect2.cover(buckets[1])
+            return [rect1, rect2].concat(tr1).concat(tr2)
 
 draw = ->
     ctx.clearRect 0, 0, canvas.width, canvas.height
@@ -1008,8 +1064,8 @@ window.onresize = (event) =>
 
 strategies = [
     "cover"
-    "manual"
     "pack"
+    "manual"
 ]
 strategy = strategies[0]
 
@@ -1023,10 +1079,12 @@ object = objects[0]
 
 instances = [
     Instance.rand()
-    new Instance ((new Circle a) for a in [1])
-    new Instance ((new Circle a) for a in [2,1])
     new Instance ((new Circle a) for a in [1,1,1])
-    new Instance ((new Circle a) for a in [1,1,1,1])
+    #new Instance ((new Circle a) for a in [1,1,1,1,1])
+    #new Instance ((new Circle a) for a in [1,1,1,1,1,1])
+    new Instance ((new Circle 2**-a) for a in [1..50])
+    new Instance ((new Circle a**15) for a in [50..1])
+    new Instance ((new Circle a) for a in [1..50])
 ]
 
 
@@ -1034,9 +1092,10 @@ instances[0].visible = true
 
 shapes = [
     new Rect(400, 400)
-    new Circle 100000
+    #new Rect(y, 400, 200-y/2, 0)
+    #new Circle 100000
     #new Rect(400, 400/1.5607)
-    new Triangle [[-400, 200], [400, 200], [0, -200]]
+    #new Triangle [[-400, 200], [400, 200], [0, -200]]
     #new Triangle [[-231, 200], [231, 200], [0, -200]]
     #new Triangle [[-311, 200], [204, 200], [0, -52]]
 ]
@@ -1069,7 +1128,6 @@ rebuildAll = ->
     if not shape.packsRubies()
         while object != "circle"
             scrollObject(1)
-    console.log(object)
     for instance in instances
         instance.normalize(targetArea())
         rebuild(instance)
