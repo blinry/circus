@@ -980,7 +980,6 @@
           ref1 = [buckets[1], buckets[0]], buckets[0] = ref1[0], buckets[1] = ref1[1];
         }
         ratio = sum2 / sum1;
-        console.log("ratio: " + ratio);
         if (buckets[1].length() === 1) {
           ref2 = [sum2, sum1], sum1 = ref2[0], sum2 = ref2[1];
           ref3 = [buckets[1], buckets[0]], buckets[0] = ref3[0], buckets[1] = ref3[1];
@@ -989,10 +988,10 @@
         longerSide = Math.max(this.w(), this.h());
         r1 = Math.sqrt(sum1 / Math.PI);
         r2 = Math.sqrt(sum2 / Math.PI);
-        if (ratio > 2 || buckets[0].length() === 1) {
+        if (buckets[0].length() === 1) {
           y1 = Math.min(Math.sqrt(Math.pow(r1, 2) - (Math.pow(shorterSide, 2)) / 4) * 2, longerSide);
         } else {
-          y1 = longerSide * 0.5;
+          y1 = longerSide * (0.5 - (0.5 - 1 / 8.0) * (ratio - 1));
         }
         if (isNaN(y1)) {
           y1 = 0;

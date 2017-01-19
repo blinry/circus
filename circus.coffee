@@ -739,7 +739,7 @@ class Rect
                 [buckets[0], buckets[1]] = [buckets[1], buckets[0]]
 
             ratio = sum2/sum1
-            console.log("ratio: "+ratio)
+            #console.log("ratio: "+ratio)
 
             if (buckets[1].length() == 1)
                 [sum1, sum2] = [sum2, sum1]
@@ -751,10 +751,10 @@ class Rect
             r1 = Math.sqrt(sum1/Math.PI)
             r2 = Math.sqrt(sum2/Math.PI)
 
-            if ratio > 2 or buckets[0].length() == 1
+            if buckets[0].length() == 1
                 y1 = Math.min(Math.sqrt(r1**2-(shorterSide**2)/4)*2, longerSide)
             else
-                y1 = longerSide*0.5#(0.5-(0.5-1/8.0)*(ratio-1))
+                y1 = longerSide*(0.5-(0.5-1/8.0)*(ratio-1))
 
             if isNaN(y1)
                 y1 = 0
