@@ -665,7 +665,7 @@ class Rect
         ctx.fillRect(-@w()/2+@x(), -@h()/2+@y(), @w(), @h())
     drawHelper: ->
         ctx.strokeStyle = "black"
-        ctx.lineWidth = 0.5
+        ctx.lineWidth = 0.3
         ctx.rect(-@w()/2+@x(), -@h()/2+@y(), @w(), @h())
         ctx.stroke()
     tikz: ->
@@ -673,7 +673,16 @@ class Rect
     packArea: -> Math.min((new Triangle([[0,0], [@w(),0], [@w(),@h()]])).packArea()*2, Math.PI*(Math.min(@w(), @h())/2)**2)
     #coverArea: -> (new Triangle([[0,0], [@w(),0], [@w(),@h()]])).coverArea()*2
     #coverArea: -> ((@w()/2)**2+(@w()*Math.sqrt(2)/2)**2)*Math.PI
-    coverArea: -> @w()*@h()*195*Math.PI/256
+    coverArea: ->
+        if @w() == @h()
+            return @w()*@h()*195*Math.PI/256
+        else # TODO: what about almost-square rectangles?
+            shorterSide = Math.min(@w(), @h())
+            longerSide = Math.max(@w(), @h())
+            r1 = Math.sqrt((shorterSide/2.0)**2+(longerSide/2.0)**2)
+            r2 = shorterSide/2.0
+            return Math.PI*(r1**2+r2**2)
+
     pack: (instance) ->
         if instance.length() == 1
             x = r(instance.circles[0].a)
@@ -1092,15 +1101,17 @@ instances[0].visible = true
 
 shapes = [
     new Rect(400, 400)
+    new Rect(800, 100)
     #new Rect(y, 400, 200-y/2, 0)
-    #new Circle 100000
+    new Circle 100000
     #new Rect(400, 400/1.5607)
-    #new Triangle [[-400, 200], [400, 200], [0, -200]]
+    new Triangle [[-400, 200], [400, 200], [0, -200]]
     #new Triangle [[-231, 200], [231, 200], [0, -200]]
     #new Triangle [[-311, 200], [204, 200], [0, -52]]
 ]
 
 shapeNames = [
+    "square"
     "rectangle"
     "circle"
     "triangle"

@@ -890,7 +890,7 @@
 
     Rect.prototype.drawHelper = function() {
       ctx.strokeStyle = "black";
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 0.3;
       ctx.rect(-this.w() / 2 + this.x(), -this.h() / 2 + this.y(), this.w(), this.h());
       return ctx.stroke();
     };
@@ -904,7 +904,16 @@
     };
 
     Rect.prototype.coverArea = function() {
-      return this.w() * this.h() * 195 * Math.PI / 256;
+      var longerSide, r1, r2, shorterSide;
+      if (this.w() === this.h()) {
+        return this.w() * this.h() * 195 * Math.PI / 256;
+      } else {
+        shorterSide = Math.min(this.w(), this.h());
+        longerSide = Math.max(this.w(), this.h());
+        r1 = Math.sqrt(Math.pow(shorterSide / 2.0, 2) + Math.pow(longerSide / 2.0, 2));
+        r2 = shorterSide / 2.0;
+        return Math.PI * (Math.pow(r1, 2) + Math.pow(r2, 2));
+      }
     };
 
     Rect.prototype.pack = function(instance) {
@@ -1463,9 +1472,9 @@
 
   instances[0].visible = true;
 
-  shapes = [new Rect(400, 400)];
+  shapes = [new Rect(400, 400), new Rect(800, 100), new Circle(100000), new Triangle([[-400, 200], [400, 200], [0, -200]])];
 
-  shapeNames = ["rectangle", "circle", "triangle"];
+  shapeNames = ["square", "rectangle", "circle", "triangle"];
 
   for (k = 0, len = shapes.length; k < len; k++) {
     shape = shapes[k];
