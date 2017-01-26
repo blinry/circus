@@ -92,6 +92,13 @@ class Instance
             text += circle.svg()
         return text
 
+    exportToCoffee: ->
+        text = '['
+        for c in @circles
+            text += c.a
+            text += ','
+        text += ']'
+
     draw3: ->
         x = 0
         for circle in @circles
@@ -1046,6 +1053,8 @@ window.onkeydown = (event) =>
         exportSvg(false)
     if event.keyCode == 55 # 7
         exportSvg(true)
+    if event.keyCode == 55 # 8
+        exportInstance()
 
 download = (filename, text) ->
   element = document.createElement('a')
@@ -1055,6 +1064,39 @@ download = (filename, text) ->
   document.body.appendChild(element)
   element.click()
   document.body.removeChild(element)
+
+toClipboard = (text) ->
+    textArea = document.createElement("textarea")
+    textArea.style.position = 'fixed'
+    textArea.style.top = 0
+    textArea.style.left = 0
+    textArea.style.width = '2em'
+    textArea.style.height = '2em'
+    textArea.style.padding = 0
+    textArea.style.border = 'none'
+    textArea.style.outline = 'none'
+    textArea.style.boxShadow = 'none'
+    textArea.style.background = 'transparent'
+    textArea.value = text
+    textArea.id = 'ta'
+    document.body.appendChild(textArea)
+    range = document.createRange()
+    range.selectNode(textArea)
+    textArea.select()
+    window.getSelection().addRange(range)
+    try
+        document.execCommand('copy')
+    catch e
+         alert('Oops, unable to copy')
+
+    document.body.removeChild(textArea)
+
+exportInstance = ->
+    text = ""
+    for instance in instances
+        if instance.visible
+            text += instance.exportToCoffee()
+    toClipboard(text)
 
 exportTikz = (helpers=true) ->
     text = shape.tikz()
@@ -1146,8 +1188,10 @@ objects = [
 ]
 object = objects[0]
 
+# List of predefined instances
 instances = [
     Instance.rand()
+    new Instance ((new Circle a) for a in [1,1,1,0.01])
     new Instance ((new Circle a) for a in [1,1,1])
     #new Instance ((new Circle a) for a in [1,1,1,1,1])
     #new Instance ((new Circle a) for a in [1,1,1,1,1,1])
