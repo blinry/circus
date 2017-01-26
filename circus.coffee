@@ -1114,7 +1114,8 @@ exportTikz = (helpers=true) ->
 
 exportSvg = (helpers=true) ->
     text = "<?xml version=\"1.0\"?>"
-    text += "<svg version=\"1.1\">"
+    text += "<svg version=\"1.1\" width=\"1000\" height=\"1000\" viewBox=\"-400 -40
+0 800 800\">"
     text += shape.svg()
     if helpers
         for helper in helpers
