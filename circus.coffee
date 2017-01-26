@@ -9,11 +9,42 @@ yShift = 550
 instanceHeight = 50
 instanceScale = 1
 
+hue2rgb = (p, q, t) ->
+    if t < 0
+        t += 1
+    if t > 1
+        t -= 1
+    if t < 1/6
+        return p + (q - p) * 6 * t
+    if t < 1/2
+        return q
+    if t < 2/3
+        return p + (q - p) * (2/3 - t) * 6
+    return p
+
 class Color
     constructor: (@h,@s,@l,@a) ->
         # nop
     @rand: -> new Color rand(0, 360), 100, rand(20, 40), 0.8
     string: -> "hsla("+@h+","+@s+"%,"+@l+"%,"+@a+")"
+    rgb: ->
+        h = @h/360.0
+        s = @s/100.0
+        l = @l/100.0
+        if s == 0
+            rr = g = b = l // achromatic
+        else
+            q = if l < 0.5 then l * (1 + s) else l + s - l * s
+            p = 2 * l - q
+            console.log("color")
+            rr = hue2rgb(p, q, h + 1/3.0)
+            console.log(rr)
+            g = hue2rgb(p, q, h)
+            console.log(g)
+            b = hue2rgb(p, q, h - 1/3.0)
+            console.log(b)
+        "#"+("0"+Math.round(rr * 255).toString(16)).slice(-2)+("0"+Math.round(g * 255).toString(16)).slice(-2)+("0"+Math.round(b * 255).toString(16)).slice(-2)
+
     gray: -> new Color @h, 0, @l, @a
 
 class Instance
@@ -54,6 +85,11 @@ class Instance
         text = ""
         for circle in @circles
             text += circle.tikz()
+        return text
+    svg: ->
+        text = ""
+        for circle in @circles
+            text += circle.svg()
         return text
 
     draw3: ->
@@ -257,6 +293,8 @@ class Circle
                 t.rotateLargestAngleUp()
                 text += t.tikzShape()
         return text
+    svg: ->
+        "<circle cx=\""+@pos[0]+"\" cy=\""+@pos[1]+"\" r=\""+r(@a)+"\" stroke=\"none\" fill=\""+@color.rgb()+"\" fill-opacity=\"0.8\"/>"
 
     pack: (instance) ->
         circs = instance.circles.slice().sort((a, b) -> a.a - b.a)
@@ -670,6 +708,8 @@ class Rect
         ctx.stroke()
     tikz: ->
         "\\draw ("+(-@w()/2)+","+(-@h()/2)+") rectangle ("+@w()/2+","+@h()/2+");\n"
+    svg: ->
+        "<rect x=\""+(@x()-@w()/2)+"\" y=\""+(@y()-@h()/2)+"\" width=\""+@w()+"\" height=\""+@h()+"\" fill=\"lightgray\"/>"
     packArea: -> Math.min((new Triangle([[0,0], [@w(),0], [@w(),@h()]])).packArea()*2, Math.PI*(Math.min(@w(), @h())/2)**2)
     #coverArea: -> (new Triangle([[0,0], [@w(),0], [@w(),@h()]])).coverArea()*2
     #coverArea: -> ((@w()/2)**2+(@w()*Math.sqrt(2)/2)**2)*Math.PI
@@ -1002,6 +1042,10 @@ window.onkeydown = (event) =>
         exportTikz(false)
     if event.keyCode == 53 # 5
         exportTikz(true)
+    if event.keyCode == 54 # 6
+        exportSvg(false)
+    if event.keyCode == 55 # 7
+        exportSvg(true)
 
 download = (filename, text) ->
   element = document.createElement('a')
@@ -1025,6 +1069,22 @@ exportTikz = (helpers=true) ->
             break
         i++
     download("split-packing-"+i+".tex", text)
+
+exportSvg = (helpers=true) ->
+    text = "<?xml version=\"1.0\"?>"
+    text += "<svg version=\"1.1\">"
+    text += shape.svg()
+    if helpers
+        for helper in helpers
+            text += helper.svgHelper()
+    i = 1
+    for instance in instances
+        if instance.visible
+            text += instance.svg()
+            break
+        i++
+    text += "</svg>"
+    download("split-packing-"+i+".svg", text)
 
 canvas.onmousewheel = (event) =>
     Mouse.wheel += event.wheelDelta
