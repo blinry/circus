@@ -1098,10 +1098,10 @@ exportInstance = ->
             text += instance.exportToCoffee()
     toClipboard(text)
 
-exportTikz = (helpers=true) ->
+exportTikz = (exportHelpers=true) ->
     text = shape.tikz()
 
-    if helpers
+    if exportHelpers
         for helper in helpers
             text += helper.tikzHelper()
     i = 1
@@ -1112,11 +1112,11 @@ exportTikz = (helpers=true) ->
         i++
     download("split-packing-"+i+".tex", text)
 
-exportSvg = (helpers=true) ->
+exportSvg = (exportHelpers=true) ->
     text = "<?xml version=\"1.0\"?>"
     text += "<svg version=\"1.1\" width=\"1000\" height=\"1000\" viewBox=\"-400 -400 800 800\">"
     text += shape.svg()
-    if helpers
+    if exportHelpers
         for helper in helpers
             text += helper.svgHelper()
     i = 1
